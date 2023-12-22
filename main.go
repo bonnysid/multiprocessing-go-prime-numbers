@@ -114,10 +114,10 @@ func algorithmParallel2() {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-func worker(num int, primes []int, results chan<- int) {
+func worker(num int, primes []int, results []int) {
 	for _, prime := range primes {
 		if num%prime == 0 && num != prime {
-			results <- num
+			results = append(results, num)
 			break
 		}
 	}
@@ -130,26 +130,16 @@ func algorithmParallel3() {
 	var primes = sieveOfEratosthenes(eratosthenesLimit)
 	var start = eratosthenesLimit + 1
 	var end = limit
-	var wg sync.WaitGroup
+	var sem = make(chan int, 10)
 
-	var results = make(chan int)
+	var results = []int{}
 
 	for i := start; i <= end; i++ {
-		wg.Add(1)
+		sem <- 1
 		go func(num int) {
-			defer wg.Done()
 			worker(num, primes, results)
+			<-sem
 		}(i)
-	}
-
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	var compositeNumbers = []int{}
-	for res := range results {
-		compositeNumbers = append(compositeNumbers, res)
 	}
 
 	fmt.Printf("Время выполнения Параллельный алгоритм №3: применение пула потоков: %.2f\n", time.Since(startTime).Seconds())
